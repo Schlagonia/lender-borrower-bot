@@ -10,8 +10,6 @@ import click
 from ape.cli import network_option, NetworkBoundCommand
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-telegram_bot_key = os.environ["TELEGRAM_BOT_KEY"]
-telegram_chat_id = int(-846083875)
 
 list_of_strategies = {
     "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949"],
@@ -201,6 +199,9 @@ def simulate_harvest(strategy):
 
 
 def _report_status():
+    telegram_bot_key = os.environ["TELEGRAM_BOT_KEY"]
+    telegram_chat_id = int(-846083875)
+
     bot = telegram.Bot(telegram_bot_key)
     with StringIO() as sio:
         _lender_borrower_status(print=lambda s: sio.write(f"{s}\n"))
