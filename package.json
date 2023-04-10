@@ -1,5 +1,5 @@
 {
-  "name": "tokenized_strategy_ape_mix",
+  "name": "lender-borrower-bot",
   "devDependencies": {
     "@openzeppelin/contracts": "^4.8.2",
     "@commitlint/cli": "^17.0.0",

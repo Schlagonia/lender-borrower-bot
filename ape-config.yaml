@@ -1,4 +1,4 @@
-name: tokenized-strategy-ape-mix
+name: lender-borrower-bot
 
 plugins:
   - name: solidity
@@ -8,25 +8,6 @@ plugins:
   - name: alchemy
 
 default_ecosystem: ethereum
-dependencies:
-  - name: openzeppelin
-    github: OpenZeppelin/openzeppelin-contracts
-    version: 4.8.2
-  - name: tokenized-strategy
-    github: yearn/tokenized-strategy
-    branch: test
-    contracts_folder: src
-    exclude:
-     - src/test/**/*
-  - name: periphery
-    github: schlagonia/tokenized-strategy-periphery
-    branch: master
-
-solidity:
-  import_remapping:
-    - "@openzeppelin/contracts=openzeppelin/v4.8.2"
-    - "@tokenized-strategy=tokenized-strategy/test"
-    - "@periphery=periphery/master"
 
 ethereum:
   default_network: mainnet-fork
