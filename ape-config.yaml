@@ -2,20 +2,11 @@ name: lender-borrower-bot
 
 plugins:
   - name: solidity
-  - name: etherscan
-  - name: hardhat
   - name: infura
-  - name: alchemy
 
 default_ecosystem: ethereum
 
 ethereum:
-  default_network: mainnet-fork
-  mainnet_fork:
-    default_provider: hardhat
-
-hardhat:
-  fork:
-    ethereum:
-      mainnet:
-        upstream_provider: infura
+  default_network: mainnet
+  mainnet:
+    default_provider: infura
