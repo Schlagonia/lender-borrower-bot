@@ -8,25 +8,24 @@ from io import StringIO
 import telegram
 from rich import print
 import requests
-from ape import project, chain, Contract, networks
+from ape import project, chain, networks
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 telegram_bot_key = ""
 telegram_chat_id = int(-1001553383497)
 
 list_of_strategies = {
-    "ethereum": [
-            "0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949"
-    ],
+    "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949"],
 }
 
 summary_msg = "\n=== CompV3 Lender Borrower SUMMARY ===\n"
+
 
 def _lender_borrower_status():
     now_unix = time()
 
     chain = networks.provider.network.ecosystem.name
-    
+
     print(
         f"{'ETH' if chain == 'ethereum' else 'Polygon'} Strategy Status {datetime.utcfromtimestamp(now_unix).isoformat()}:"
     )
@@ -35,31 +34,33 @@ def _lender_borrower_status():
     for strategy_address in list_of_strategies[chain]:
         print("\n---\n")
 
-        strategy = Contract(strategy_address)
+        strategy = project.CompV3LenderBorrowerStrategy.at(strategy_address)
 
         name = strategy.name()
-        vault = Contract(strategy.vault())
+        vault = project.Vault.at(strategy.vault())
 
         debt = vault.strategies(strategy.address)["totalDebt"]
 
         if debt == 0:
             print(f"\n{name}: Inactive Strategy")
-        
+
         else:
-            token = Contract(strategy.want())
+            token = project.IERC20Extended.at(strategy.want())
             token_decimals = token.decimals()
             token_symbol = token.symbol()
 
-            depositer = Contract(strategy.depositer())
-            borrower = Contract(strategy.baseToken())
+            depositer = project.CompV3LenderBorrowerDepositor.at(strategy.depositer())
+            borrower = project.IERC20Extended.at(strategy.baseToken())
             borrower_decimals = borrower.decimals()
             borrower_symbol = borrower.symbol()
 
-            comet = Contract(strategy.comet())
+            comet = project.Comet.at(strategy.comet())
             last_harvest_UNIX = vault.strategies(strategy)["lastReport"]
 
             # need to adjust based on chain
-            reward_token = Contract("0xc00e94Cb662C3520282E6f5717214004A7f26888")
+            reward_token = project.IERC20Extended.at(
+                "0xc00e94Cb662C3520282E6f5717214004A7f26888"
+            )
 
             token_price_feed = strategy.priceFeeds(token)
             borrower_price_feed = strategy.priceFeeds(borrower)
@@ -73,14 +74,22 @@ def _lender_borrower_status():
             if reward_token != ZERO_ADDRESS:
                 reward_price_feed = strategy.priceFeeds(reward_token)
                 reward_price = comet.getPrice(reward_price_feed)
-            
+
             borrowed = strategy.balanceOfDebt()
             depositer_balance = depositer.cometBalance()
             base_token_owed = strategy.baseTokenOwedBalance()
 
-            current_ltv =strategy.getCurrentLTV() 
-            target_ltv = strategy.getLiquidateCollateralFactor() * strategy.targetLTVMultiplier() / 10_000 
-            warning_ltv = strategy.getLiquidateCollateralFactor() * strategy.warningLTVMultiplier() / 10_000 
+            current_ltv = strategy.getCurrentLTV()
+            target_ltv = (
+                strategy.getLiquidateCollateralFactor()
+                * strategy.targetLTVMultiplier()
+                / 10_000
+            )
+            warning_ltv = (
+                strategy.getLiquidateCollateralFactor()
+                * strategy.warningLTVMultiplier()
+                / 10_000
+            )
 
             net_borrow_apr = depositer.getNetBorrowApr(0)
             net_reward_apr = depositer.getNetRewardApr(0)
@@ -103,7 +112,7 @@ def _lender_borrower_status():
                 if log["name"] == "StrategyReported":
                     profit = log["inputs"][1]["value"]
             """
-            
+
             """
             keeper = vault.governance()
             tx = strategy.harvest(sender=keeper)
@@ -111,16 +120,10 @@ def _lender_borrower_status():
 
             profit = event[0].gain
             """
-            profit_usd = (
-                profit / (10 ** token_decimals)
-            ) * token_price
+            profit_usd = (profit / (10 ** token_decimals)) * token_price
 
-            APR = (
-                profit
-                * dur_since_last_harvest_yrs
-                / debt
-            )
-            
+            APR = profit * dur_since_last_harvest_yrs / debt
+
             print(f"{name}:")
             print(f"Last Harvest: {days_from_harvest}d, {hours_from_harvest}h ago")
             print(f"\n=== Current Balances ===")
@@ -138,15 +141,16 @@ def _lender_borrower_status():
             )
 
             print(f"\n=== LTV ===")
-            
-            print(f"Current Strategy LTV: {current_ltv/ 1e16 :,.2f}%")
-            
-            print(f"Target LTV: {target_ltv / 1e16 :,.2f}%")
-            
-            print(f"Warning LTV: {warning_ltv / 1e16 :,.2f}%")
-            print(f"Liquidation LTV: {strategy.getLiquidateCollateralFactor() / 1e16 :,.2f}%")
 
-            
+            print(f"Current Strategy LTV: {current_ltv/ 1e16 :,.2f}%")
+
+            print(f"Target LTV: {target_ltv / 1e16 :,.2f}%")
+
+            print(f"Warning LTV: {warning_ltv / 1e16 :,.2f}%")
+            print(
+                f"Liquidation LTV: {strategy.getLiquidateCollateralFactor() / 1e16 :,.2f}%"
+            )
+
             print(f"\n=== Current Apy's  ===")
             print(f"Current net borrowe apr -{(net_borrow_apr / 1e16):,.2f}%")
             print(f"Current Reward Apr: {(net_reward_apr/1e16):,.2f}%")
@@ -162,7 +166,7 @@ def _lender_borrower_status():
                 )
                 print(f"APR : {APR:,.4%}")
                 summary_msg += f"APR: {APR:,.2%}" + "\n"
-        
+
             print(f"\n=== Triggers ===")
             print(f"Strategy Harvest Trigger: {harvest_trigger_status}")
             print(f"Strategy Tend Trigger: {tend_trigger_status}")
