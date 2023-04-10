@@ -1,4 +1,4 @@
-python-telegram-bot>=13.7
+python-telegram-bot>=13.7,<20.0
 rich>=10.7.0
 eth-ape>=0.6.7
 ape-infura==0.6.1

@@ -9,7 +9,6 @@ FROM python:3.10.10-slim
 
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
-ENV PORT 8000
 
 WORKDIR /app
 
@@ -23,4 +22,4 @@ RUN ape compile
 
 COPY scripts/ scripts/
 
-ENTRYPOINT ape run lender-borrower
+CMD ape run lender-borrower

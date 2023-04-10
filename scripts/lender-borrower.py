@@ -1,18 +1,17 @@
 from time import time
 from datetime import datetime
 import os
-import json
-from web3 import Web3
-import math
 from io import StringIO
 import telegram
 from rich import print
 import requests
-from ape import project, chain, networks
+from ape import project, networks
+import click
+from ape.cli import network_option, NetworkBoundCommand
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-telegram_bot_key = ""
-telegram_chat_id = int(-1001553383497)
+telegram_bot_key = os.environ["TELEGRAM_BOT_KEY"]
+telegram_chat_id = int(-846083875)
 
 list_of_strategies = {
     "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949"],
@@ -21,7 +20,7 @@ list_of_strategies = {
 summary_msg = "\n=== CompV3 Lender Borrower SUMMARY ===\n"
 
 
-def _lender_borrower_status():
+def _lender_borrower_status(print=print):
     now_unix = time()
 
     chain = networks.provider.network.ecosystem.name
@@ -201,5 +200,24 @@ def simulate_harvest(strategy):
     return j["transaction"]["transaction_info"]["call_trace"]["logs"]
 
 
-def main():
-    _lender_borrower_status()
+def _report_status():
+    bot = telegram.Bot(telegram_bot_key)
+    with StringIO() as sio:
+        _lender_borrower_status(print=lambda s: sio.write(f"{s}\n"))
+
+        bot.send_message(
+            chat_id=telegram_chat_id,
+            text=f"```\n{sio.getvalue()}\n```",
+            disable_web_page_preview=True,
+            parse_mode=telegram.ParseMode.MARKDOWN_V2,
+        )
+
+
+@click.command(cls=NetworkBoundCommand)
+@click.option("--use-telegram", is_flag=True)
+@network_option()
+def cli(use_telegram, **_):
+    if use_telegram:
+        _report_status()
+    else:
+        _lender_borrower_status()
