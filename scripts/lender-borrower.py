@@ -12,7 +12,7 @@ from ape.cli import network_option, NetworkBoundCommand
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 list_of_strategies = {
-    "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949"],
+    "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949", "0x17304367C7680a62F23B667ce5ef7e80aE296205"],
 }
 
 summary_msg = "\n=== CompV3 Lender Borrower SUMMARY ===\n"
