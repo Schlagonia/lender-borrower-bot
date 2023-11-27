@@ -3,6 +3,8 @@ name: lender-borrower-bot
 plugins:
   - name: solidity
   - name: infura
+  - name: polygon
+  - name: alchemy
 
 default_ecosystem: ethereum
 
@@ -10,3 +12,8 @@ ethereum:
   default_network: mainnet
   mainnet:
     default_provider: infura
+
+polygon:
+  default_network: mainnet
+  mainnet:
+    default_provider: alchemy
