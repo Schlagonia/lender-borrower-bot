@@ -12,8 +12,14 @@ from ape.cli import network_option, NetworkBoundCommand
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 list_of_strategies = {
-    "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949", "0x17304367C7680a62F23B667ce5ef7e80aE296205"],
-    "polygon": ["0x2a42A69F48EfffDF2d4Fb079Af60D98D3e34D49C", "0x5136c2F7aB13E202eD42bc1AE82Dd63475919653"]
+    "ethereum": [
+        "0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949",
+        "0x17304367C7680a62F23B667ce5ef7e80aE296205",
+    ],
+    "polygon": [
+        "0x2a42A69F48EfffDF2d4Fb079Af60D98D3e34D49C",
+        "0x5136c2F7aB13E202eD42bc1AE82Dd63475919653",
+    ],
 }
 
 summary_msg = "\n=== CompV3 Lender Borrower SUMMARY ===\n"
@@ -37,7 +43,7 @@ def _lender_borrower_status(print=print):
         debt = 0
         vault = ""
         reward_token = ""
-        
+
         if chain == "ethereum":
             strategy = project.CompV3LenderBorrowerStrategy.at(strategy_address)
             token = project.IERC20Extended.at(strategy.want())
@@ -56,13 +62,11 @@ def _lender_borrower_status(print=print):
             strategy = project.V3LenderBorrower.at(strategy_address)
             reward_token = project.IERC20Extended.at(strategy.rewardToken())
             depositer = project.CompV3LenderBorrowerDepositor.at(strategy.depositor())
-        
 
         if debt == 0:
             print(f"\n{name}: Inactive Strategy")
 
         else:
-
             token_decimals = token.decimals()
             token_symbol = token.symbol()
 
@@ -73,10 +77,12 @@ def _lender_borrower_status(print=print):
             comet = project.Comet.at(strategy.comet())
 
             if vault == "":
-                last_harvest_UNIX = project.TokenizedStrategy.at(strategy.address).lastReport()
+                last_harvest_UNIX = project.TokenizedStrategy.at(
+                    strategy.address
+                ).lastReport()
                 token_price_feed = strategy.tokenInfo(token)[0]
                 borrower_price_feed = strategy.tokenInfo(borrower)[0]
-                
+
             else:
                 last_harvest_UNIX = vault.strategies(strategy)["lastReport"]
                 token_price_feed = strategy.priceFeeds(token)
@@ -84,7 +90,7 @@ def _lender_borrower_status(print=print):
 
             token_price = comet.getPrice(token_price_feed)
             borrower_price = comet.getPrice(borrower_price_feed)
-   
+
             borrowed = strategy.balanceOfDebt()
             depositer_balance = depositer.cometBalance()
             base_token_owed = strategy.baseTokenOwedBalance()
@@ -134,7 +140,7 @@ def _lender_borrower_status(print=print):
 
             profit = event[0].gain
             """
-            profit_usd = (profit / (10 ** token_decimals)) * token_price
+            profit_usd = (profit / (10**token_decimals)) * token_price
 
             APR = profit * dur_since_last_harvest_yrs / debt
 
