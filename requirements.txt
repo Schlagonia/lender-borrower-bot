@@ -4,4 +4,5 @@ black>=23.3.0
 eth-ape>=0.6.7
 ape-infura==0.6.1
 ape-solidity==0.6.2
-
+ape-polygon==0.6.2
+ape-alchemy==0.6.1

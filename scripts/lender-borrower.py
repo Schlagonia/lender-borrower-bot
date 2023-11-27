@@ -5,7 +5,7 @@ from io import StringIO
 import telegram
 from rich import print
 import requests
-from ape import project, networks
+from ape import project, networks, Contract
 import click
 from ape.cli import network_option, NetworkBoundCommand
 
@@ -13,6 +13,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 list_of_strategies = {
     "ethereum": ["0x9E9a2a86eeff52FFD13fc724801a4259b2B1A949", "0x17304367C7680a62F23B667ce5ef7e80aE296205"],
+    "polygon": ["0x2a42A69F48EfffDF2d4Fb079Af60D98D3e34D49C", "0x5136c2F7aB13E202eD42bc1AE82Dd63475919653"]
 }
 
 summary_msg = "\n=== CompV3 Lender Borrower SUMMARY ===\n"
@@ -31,47 +32,59 @@ def _lender_borrower_status(print=print):
     for strategy_address in list_of_strategies[chain]:
         print("\n---\n")
 
-        strategy = project.CompV3LenderBorrowerStrategy.at(strategy_address)
-
-        name = strategy.name()
-        vault = project.Vault.at(strategy.vault())
-
-        debt = vault.strategies(strategy.address)["totalDebt"]
+        strategy = ""
+        token = ""
+        debt = 0
+        vault = ""
+        reward_token = ""
+        
+        if chain == "ethereum":
+            strategy = project.CompV3LenderBorrowerStrategy.at(strategy_address)
+            token = project.IERC20Extended.at(strategy.want())
+            vault = project.Vault.at(strategy.vault())
+            debt = vault.strategies(strategy.address)["totalDebt"]
+            name = strategy.name()
+            depositer = project.CompV3LenderBorrowerDepositor.at(strategy.depositer())
+            reward_token = project.IERC20Extended.at(
+                "0xc00e94Cb662C3520282E6f5717214004A7f26888"
+            )
+        else:
+            strategy = project.TokenizedStrategy.at(strategy_address)
+            token = project.IERC20Extended.at(strategy.asset())
+            debt = strategy.totalAssets()
+            name = strategy.name()
+            strategy = project.V3LenderBorrower.at(strategy_address)
+            reward_token = project.IERC20Extended.at(strategy.rewardToken())
+            depositer = project.CompV3LenderBorrowerDepositor.at(strategy.depositor())
+        
 
         if debt == 0:
             print(f"\n{name}: Inactive Strategy")
 
         else:
-            token = project.IERC20Extended.at(strategy.want())
+
             token_decimals = token.decimals()
             token_symbol = token.symbol()
 
-            depositer = project.CompV3LenderBorrowerDepositor.at(strategy.depositer())
             borrower = project.IERC20Extended.at(strategy.baseToken())
             borrower_decimals = borrower.decimals()
             borrower_symbol = borrower.symbol()
 
             comet = project.Comet.at(strategy.comet())
-            last_harvest_UNIX = vault.strategies(strategy)["lastReport"]
 
-            # need to adjust based on chain
-            reward_token = project.IERC20Extended.at(
-                "0xc00e94Cb662C3520282E6f5717214004A7f26888"
-            )
-
-            token_price_feed = strategy.priceFeeds(token)
-            borrower_price_feed = strategy.priceFeeds(borrower)
-            reward_price_feed = ""
+            if vault == "":
+                last_harvest_UNIX = project.TokenizedStrategy.at(strategy.address).lastReport()
+                token_price_feed = strategy.tokenInfo(token)[0]
+                borrower_price_feed = strategy.tokenInfo(borrower)[0]
+                
+            else:
+                last_harvest_UNIX = vault.strategies(strategy)["lastReport"]
+                token_price_feed = strategy.priceFeeds(token)
+                borrower_price_feed = strategy.priceFeeds(borrower)
 
             token_price = comet.getPrice(token_price_feed)
-
             borrower_price = comet.getPrice(borrower_price_feed)
-            reward_price = 0
-
-            if reward_token != ZERO_ADDRESS:
-                reward_price_feed = strategy.priceFeeds(reward_token)
-                reward_price = comet.getPrice(reward_price_feed)
-
+   
             borrowed = strategy.balanceOfDebt()
             depositer_balance = depositer.cometBalance()
             base_token_owed = strategy.baseTokenOwedBalance()
@@ -98,8 +111,12 @@ def _lender_borrower_status(print=print):
             )
             dur_since_last_harvest_yrs = 365 / ((now_unix - last_harvest_UNIX) / 86400)
 
-            harvest_trigger_status = strategy.harvestTrigger(100)
-            tend_trigger_status = strategy.tendTrigger(100)
+            if vault == "":
+                tend_trigger_status = strategy.tendTrigger()[0]
+                harvest_trigger_status = False
+            else:
+                harvest_trigger_status = strategy.harvestTrigger(100)
+                tend_trigger_status = strategy.tendTrigger(100)
 
             profit = 0
             """
