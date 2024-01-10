@@ -95,6 +95,7 @@ def _lender_borrower_status(print=print):
             depositer_balance = depositer.cometBalance()
             base_token_owed = strategy.baseTokenOwedBalance()
 
+            #print(strategy)
             current_ltv = strategy.getCurrentLTV()
             target_ltv = (
                 strategy.getLiquidateCollateralFactor()
@@ -235,6 +236,10 @@ def _report_status():
             disable_web_page_preview=True,
             parse_mode=telegram.ParseMode.MARKDOWN_V2,
         )
+
+
+def _ivs():
+    pass
 
 
 @click.command(cls=NetworkBoundCommand)
